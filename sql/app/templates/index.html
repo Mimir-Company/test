@@ -1,0 +1,538 @@
+<!-- index.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="dashboard-header">
+        <h1><i class="fas fa-shield-alt"></i> Мониторинг SQL-инъекций</h1>
+        <p class="dashboard-subtitle">Анализ сетевой активности в реальном времени</p>
+    </div>
+    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-bolt"></i>
+            </div>
+            <div class="stat-info">
+                <h3>1,248</h3>
+                <p>Запросов сегодня</p>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="stat-info">
+                <h3>12</h3>
+                <p>Потенциальных угроз</p>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-info">
+                <h3>99.7%</h3>
+                <p>Успешных проверок</p>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-server"></i>
+            </div>
+            <div class="stat-info">
+                <h3>24/7</h3>
+                <p>Мониторинг активен</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container fadein-block grafana-container" id="activity-graph-section">
+        <div class="section-header">
+            <h2><i class="fas fa-chart-line"></i> График активности</h2>
+            <div class="time-filters-graph">
+                <button class="time-filter-graph active" data-range="24h">24ч</button>
+                <button class="time-filter-graph" data-range="7d">7д</button>
+                <button class="time-filter-graph" data-range="30d">30д</button>
+            </div>
+        </div>
+        <iframe
+        src="http://localhost:3000/dashboard-solo/new?orgId=1&from=now-24h&to=now&theme=light&panelId=1"
+        width="100%"
+        height="700"
+        frameborder="0"
+        style="border-radius:16px; box-shadow:0 2px 16px rgba(25,118,210,0.10);">
+      </iframe>
+    </div>
+    
+    <div class="container">
+        <h2><i class="fas fa-search"></i> Проверка запросов</h2>
+        <div style="margin-bottom: 1rem;">
+            <a href="/?source=dataset{% if max_pages %}&max_pages={{ max_pages }}{% endif %}" class="btn {% if source == 'dataset' %}btn-primary{% else %}btn-secondary{% endif %}"><i class="fas fa-database"></i> Датасет</a>
+            <a href="/?source=logs" class="btn {% if source == 'logs' %}btn-primary{% else %}btn-secondary{% endif %}"><i class="fas fa-list"></i> Реальные логи</a>
+            {% if source == 'dataset' %}
+            <form method="get" action="/" style="display:inline; margin-left:1rem;">
+                <input type="hidden" name="source" value="dataset">
+                <label for="max_pages">Страниц:</label>
+                <select name="max_pages" id="max_pages" onchange="this.form.submit()">
+                    <option value="5" {% if max_pages == 5 %}selected{% endif %}>5</option>
+                    <option value="10" {% if max_pages == 10 %}selected{% endif %}>10</option>
+                    <option value="20" {% if max_pages == 20 or not max_pages %}selected{% endif %}>20</option>
+                    <option value="50" {% if max_pages == 50 %}selected{% endif %}>50</option>
+                </select>
+            </form>
+            {% endif %}
+        </div>
+        
+        <button id="toggle-filters" class="btn btn-primary" style="margin-bottom: 1rem;">
+            <i class="fas fa-filter"></i> Показать фильтры
+        </button>
+        <form id="search-filters" method="get" action="/" class="search-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <input type="text" name="ip" placeholder="IP адрес" class="form-control" value="{{ ip|default('') }}">
+                </div>
+                <div class="form-group">
+                    <input type="text" name="url" placeholder="URL" class="form-control" value="{{ url|default('') }}">
+                </div>
+                <div class="form-group">
+                    <input type="text" name="ip_range" placeholder="Диапазон IP" class="form-control" value="{{ ip_range|default('') }}">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <input type="number" name="min_length" placeholder="Мин. длина" class="form-control" value="{{ min_length|default('') }}">
+                </div>
+                <div class="form-group">
+                    <input type="number" name="max_length" placeholder="Макс. длина" class="form-control" value="{{ max_length|default('') }}">
+                </div>
+                <div class="form-group">
+                    <select name="label" class="form-control">
+                        <option value="" {% if not label %}selected{% endif %}>Все метки</option>
+                        <option value="1" {% if label == '1' %}selected{% endif %}>SQL-инъекция</option>
+                        <option value="0" {% if label == '0' %}selected{% endif %}>Норма</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <input type="date" name="date_from" class="form-control" value="{{ date_from|default('') }}">
+                </div>
+                <div class="form-group">
+                    <input type="date" name="date_to" class="form-control" value="{{ date_to|default('') }}">
+                </div>
+                <div class="form-group">
+                    <select name="per_page" class="form-control">
+                        <option value="20" {% if per_page == 20 %}selected{% endif %}>20 на странице</option>
+                        <option value="50" {% if per_page == 50 or not per_page %}selected{% endif %}>50 на странице</option>
+                        <option value="100" {% if per_page == 100 %}selected{% endif %}>100 на странице</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn-apply-filters" data-tooltip="Применить фильтры">
+                    <i class="fas fa-filter"></i> Применить фильтры
+                </button>
+                <a href="/" class="btn" data-tooltip="Сбросить фильтры">
+                    <i class="fas fa-undo"></i> Сбросить
+                </a>
+            </div>
+        </form>
+        <form method="post" action="/predict" class="check-form">
+            <div class="form-group">
+                {% if dataset_queries %}
+                <label for="dataset-query-select">Выбрать запрос из датасета:</label>
+                <select id="dataset-query-select" class="form-control" style="margin-bottom: 0.5rem;">
+                    <option value="">-- Выберите запрос --</option>
+                    {% for q in dataset_queries %}
+                    <option value="{{ q }}">{{ q }}</option>
+                    {% endfor %}
+                </select>
+                <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    var select = document.getElementById('dataset-query-select');
+                    var input = document.querySelector('input[name="query"]') || document.querySelector('input[name="request"]');
+                    if (select && input) {
+                        select.addEventListener('change', function() {
+                            if (this.value) input.value = this.value;
+                        });
+                    }
+                });
+                </script>
+                {% endif %}
+                <input type="text" name="query" placeholder="Введите SQL-запрос для проверки" class="form-control" autocomplete="off">
+            </div>
+            <button type="submit" class="btn-check-sql btn-block" data-tooltip="Проверить на SQL-инъекцию">
+                <i class="fas fa-shield-alt"></i> Проверить на SQL-инъекцию
+            </button>
+        </form>
+    </div>
+    
+    <div class="container">
+        <div class="section-header">
+            <h2><i class="fas fa-list"></i> Последние события</h2>
+            <div class="table-actions">
+                <button class="btn" data-tooltip="Экспортировать логи">
+                    <i class="fas fa-download"></i> Экспорт
+                </button>
+            </div>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Время</th>
+                        <th>URL</th>
+                        <th>Запрос</th>
+                        <th>Статус</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td>{{ log.date }}</td>
+                        <td style="word-break:break-all;max-width:180px;">{{ log.url }}</td>
+                        <td style="word-break:break-all;max-width:320px;"><code>{{ log.request }}</code></td>
+                        <td>
+                            {% if log.label == 1 %}
+                            <span class="badge badge-danger">SQL-инъекция</span>
+                            {% else %}
+                            <span class="badge badge-success">Норма</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="/log/{{ log.id }}" class="btn-icon" data-tooltip="Подробнее">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <!-- Пагинация -->
+        <nav aria-label="Навигация по страницам" class="pagination-nav">
+          <ul class="pagination">
+            {% if page > 1 %}
+              <li class="page-item"><a class="page-link" href="?page={{ page-1 }}{% if q %}&q={{ q }}{% endif %}">&laquo; Назад</a></li>
+            {% endif %}
+            {% for p in range(1, total_pages+1) %}
+              <li class="page-item {% if p == page %}active{% endif %}"><a class="page-link" href="?page={{ p }}{% if q %}&q={{ q }}{% endif %}">{{ p }}</a></li>
+            {% endfor %}
+            {% if page < total_pages %}
+              <li class="page-item"><a class="page-link" href="?page={{ page+1 }}{% if q %}&q={{ q }}{% endif %}">Вперёд &raquo;</a></li>
+            {% endif %}
+          </ul>
+        </nav>
+    </div>
+</div>
+
+<!-- Панель уведомлений -->
+<div id="toast-panel" class="toast-panel">
+  <div class="toast-panel-header">История уведомлений <button id="toast-toggle">⮝</button></div>
+  <ul id="toast-list"></ul>
+</div>
+
+<!-- АНИМАЦИИ и ДИЗАЙН -->
+<style>
+  /* Fade-in для секций */
+  .dashboard-header, .stats-grid, .container, .grafana-container, .section-header { animation: fadeInBlock 0.8s; }
+  @keyframes fadeInBlock { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: none; } }
+  /* Карточки статистики */
+  .stats-grid { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 2rem; }
+  .stat-card { background: #232b45; border-radius: 18px; box-shadow: 0 4px 24px rgba(25,118,210,0.10); padding: 1.2rem 2rem; display: flex; align-items: center; gap: 1.2rem; transition: transform 0.18s, box-shadow 0.18s; cursor: pointer; min-width: 180px; }
+  .stat-card:hover { transform: scale(1.06) translateY(-4px); box-shadow: 0 8px 32px rgba(25,118,210,0.18); }
+  .stat-icon { font-size: 2.2rem; color: #42a5f5; background: #1e2746; border-radius: 50%; padding: 0.7rem; box-shadow: 0 2px 8px rgba(25,118,210,0.10); }
+  .stat-info h3 { margin: 0; font-size: 2rem; font-weight: 700; color: #fff; }
+  .stat-info p { margin: 0; color: #b0b8d9; font-size: 1.1rem; }
+  /* График */
+  .grafana-container { animation: fadeInBlock 1.2s; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 16px rgba(25,118,210,0.10); margin-bottom: 2rem; }
+  /* Кнопки */
+  .btn, .btn-primary, .btn-icon, .page-link {
+    border-radius: 6px;
+    transition: background 0.2s, color 0.2s, box-shadow 0.2s, transform 0.15s;
+    box-shadow: 0 2px 8px rgba(25,118,210,0.08);
+    will-change: transform;
+  }
+  .btn:active, .btn-primary:active, .btn-icon:active, .page-link:active {
+    animation: btnBounce 0.18s;
+  }
+  @keyframes btnBounce { 0% { transform: scale(1); } 40% { transform: scale(0.93); } 100% { transform: scale(1); } }
+  /* Фильтры */
+  .search-form { background: #232b45; border-radius: 12px; padding: 1.2rem 1rem; margin-bottom: 1.5rem; box-shadow: 0 2px 12px rgba(25,118,210,0.06); transition: box-shadow 0.2s; }
+  .search-form.open, .search-form:focus-within { box-shadow: 0 4px 24px rgba(25,118,210,0.13); }
+  .form-row { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.7rem; }
+  .form-group { flex: 1 1 160px; min-width: 120px; }
+  .form-control { border-radius: 6px; border: 1px solid #2d3a5c; background: #1e2746; color: #e3eaf2; padding: 0.5rem 0.7rem; transition: border 0.2s, box-shadow 0.2s; }
+  .form-control:focus { border: 1.5px solid #42a5f5; box-shadow: 0 0 0 2px #1976d2; }
+  .form-actions { display: flex; gap: 1rem; margin-top: 0.5rem; }
+  .form-group input:focus, .form-group select:focus { outline: none; box-shadow: 0 0 0 2px #42a5f5; }
+  /* Таблица */
+  .table-responsive { overflow-x: auto; }
+  .table th, .table td { vertical-align: middle; }
+  .table tbody tr { opacity: 0; transform: translateY(20px); animation: fadeInRow 0.5s forwards; }
+  .table tbody tr:nth-child(n) { animation-delay: 0.05s; }
+  .table tbody tr:nth-child(2n) { background: #232b45; }
+  .table tbody tr:hover { background: #1e2746; box-shadow: 0 2px 12px rgba(25,118,210,0.08); }
+  @keyframes fadeInRow { to { opacity: 1; transform: none; } }
+  /* Бейджи */
+  .badge-danger { background: #e53935; color: #fff; border-radius: 12px; padding: 0.2em 0.8em; font-weight: 600; box-shadow: 0 2px 8px rgba(229,57,53,0.08); }
+  .badge-success { background: #43a047; color: #fff; border-radius: 12px; padding: 0.2em 0.8em; font-weight: 600; box-shadow: 0 2px 8px rgba(67,160,71,0.08); }
+  /* Пагинация */
+  .pagination { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 1rem; }
+  .pagination .page-item { display: inline; }
+  .pagination .page-link { padding: 0.5rem 0.9rem; border-radius: 6px; border: 1px solid #1976d2; color: #1976d2; background: #232b45; text-decoration: none; transition: background 0.2s, color 0.2s, transform 0.15s; }
+  .pagination .page-item.active .page-link, .pagination .page-link.active, .pagination .page-link:hover { background: linear-gradient(90deg, #1976d2, #42a5f5); color: #fff; transform: scale(1.08); }
+  /* Адаптивность */
+  @media (max-width: 900px) {
+    .form-row { flex-direction: column; gap: 0.5rem; }
+    .table th, .table td { font-size: 0.95rem; }
+    .stats-grid { flex-direction: column; gap: 1rem; }
+    .stat-card { width: 100%; }
+  }
+  @media (max-width: 600px) {
+    .table th, .table td { font-size: 0.9rem; }
+    .pagination .page-link { padding: 0.3rem 0.6rem; font-size: 0.95rem; }
+    .search-form { padding: 0.7rem 0.3rem; }
+    .stat-info h3 { font-size: 1.3rem; }
+  }
+  /* Красивая кнопка "Показать фильтры" */
+  #toggle-filters {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    background: linear-gradient(90deg, #1976d2, #42a5f5);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 1.15rem;
+    font-weight: 600;
+    padding: 0.7em 1.5em;
+    box-shadow: 0 2px 12px rgba(25,118,210,0.13);
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s, transform 0.13s;
+    margin-bottom: 1rem;
+  }
+  #toggle-filters i { margin-right: 0.5em; }
+  #toggle-filters:hover {
+    background: linear-gradient(90deg, #42a5f5, #1976d2);
+    box-shadow: 0 4px 24px rgba(25,118,210,0.18);
+    transform: scale(1.04);
+  }
+  #toggle-filters:active { animation: btnBounce 0.18s; }
+
+  /* Красивая кнопка "Применить фильтры" */
+  .btn-apply-filters {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    background: linear-gradient(90deg, #43a047, #66bb6a);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 1.08rem;
+    font-weight: 600;
+    padding: 0.6em 1.3em;
+    box-shadow: 0 2px 12px rgba(67,160,71,0.13);
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s, transform 0.13s;
+  }
+  .btn-apply-filters i { margin-right: 0.5em; }
+  .btn-apply-filters:hover {
+    background: linear-gradient(90deg, #66bb6a, #43a047);
+    box-shadow: 0 4px 24px rgba(67,160,71,0.18);
+    transform: scale(1.04);
+  }
+  .btn-apply-filters:active { animation: btnBounce 0.18s; }
+
+  /* Красивая кнопка "Проверить на SQL-инъекцию" */
+  .btn-check-sql {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6em;
+    background: linear-gradient(90deg, #e53935, #ff7043);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    padding: 0.85em 1.7em;
+    box-shadow: 0 2px 16px rgba(229,57,53,0.13);
+    cursor: pointer;
+    margin-top: 0.7em;
+    margin-bottom: 0.7em;
+    transition: background 0.2s, box-shadow 0.2s, transform 0.13s;
+    min-height: 48px;
+  }
+  .btn-check-sql i { margin-right: 0.6em; font-size: 1.2em; }
+  .btn-check-sql:hover {
+    background: linear-gradient(90deg, #ff7043, #e53935);
+    box-shadow: 0 6px 32px rgba(229,57,53,0.18);
+    transform: scale(1.05);
+  }
+  .btn-check-sql:active { animation: btnBounce 0.18s; }
+
+  .fadein-block { animation: fadeInBlock 0.8s; }
+  @keyframes fadeInBlock { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: none; } }
+  /* График активности */
+  #activity-graph-section { margin-bottom: 2.5rem; }
+  .time-filters-graph { display: flex; gap: 0.7em; margin-bottom: 1em; }
+  .time-filter-graph { background: linear-gradient(90deg, #1976d2, #42a5f5); color: #fff; border: none; border-radius: 8px; padding: 0.5em 1.2em; font-weight: 600; font-size: 1.05rem; cursor: pointer; transition: background 0.2s, transform 0.13s; }
+  .time-filter-graph.active, .time-filter-graph:hover { background: linear-gradient(90deg, #42a5f5, #1976d2); transform: scale(1.07); }
+  /* Toast-панель */
+  .toast-panel { position: fixed; right: 32px; bottom: 32px; width: 340px; max-width: 90vw; background: #232b45; color: #e3eaf2; border-radius: 14px; box-shadow: 0 8px 32px rgba(25,118,210,0.18); z-index: 9999; padding: 0; overflow: hidden; transition: box-shadow 0.2s, transform 0.2s; }
+  .toast-panel-header { background: #1e2746; font-weight: 700; padding: 0.7em 1.2em; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2d3a5c; }
+  #toast-toggle { background: none; border: none; color: #42a5f5; font-size: 1.2em; cursor: pointer; }
+  #toast-list { list-style: none; margin: 0; padding: 0.7em 1.2em; max-height: 320px; overflow-y: auto; }
+  #toast-list li { margin-bottom: 0.7em; background: #1e2746; border-radius: 8px; padding: 0.7em 1em; box-shadow: 0 2px 8px rgba(25,118,210,0.08); opacity: 0; transform: translateY(20px); animation: fadeInRow 0.5s forwards; }
+  #toast-list li:last-child { margin-bottom: 0; }
+  #toast-list li.toast-success { border-left: 4px solid #43a047; }
+  #toast-list li.toast-error { border-left: 4px solid #e53935; }
+  #toast-list li.toast-info { border-left: 4px solid #42a5f5; }
+  #toast-list li.toast-warning { border-left: 4px solid #ffb300; }
+  .toast-panel.collapsed { transform: translateY(80%); opacity: 0.5; pointer-events: none; }
+  .toast-panel-header { user-select: none; }
+  @media (max-width: 600px) { .toast-panel { right: 2vw; bottom: 2vw; width: 98vw; } }
+</style>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <script id="flash-messages-json" type="application/json">{{ messages|tojson }}</script>
+    <script>
+      const flashMessages = JSON.parse(document.getElementById('flash-messages-json').textContent);
+      if (flashMessages.length > 0) {
+        flashMessages.forEach(function(msg) {
+          let icon = 'info';
+          if (msg[0] === 'success') icon = 'success';
+          else if (msg[0] === 'error') icon = 'error';
+          else if (msg[0] === 'warning') icon = 'warning';
+          Swal.fire({
+            icon: icon,
+            title: msg[1],
+            showConfirmButton: false,
+            timer: 3000,
+            background: '#1e2746',
+            color: '#e3eaf2',
+            showClass: { popup: 'swal2-show fade-in' },
+            hideClass: { popup: 'swal2-hide' }
+          });
+        });
+      }
+    </script>
+    <style>
+      .swal2-popup.swal2-show.fade-in { animation: fadeInBlock 0.7s; }
+    </style>
+  {% endif %}
+{% endwith %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Chart.js график активности с фильтрацией
+let activityChart;
+function fetchAndRenderChart(range) {
+  fetch(`/api/stats?range=${range}`)
+    .then(r => r.json())
+    .then(data => {
+      if (activityChart) activityChart.destroy();
+      const ctx = document.getElementById('activityChart').getContext('2d');
+      activityChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: data.labels,
+          datasets: [{
+            label: 'SQL-инъекции',
+            data: data.values,
+            borderColor: '#e53935',
+            backgroundColor: 'rgba(229,57,53,0.13)',
+            tension: 0.35,
+            fill: true,
+            pointRadius: 4,
+            pointHoverRadius: 7,
+            pointBackgroundColor: '#e53935',
+            pointBorderColor: '#fff',
+          }]
+        },
+        options: {
+          animation: { duration: 1200, easing: 'easeOutQuart' },
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { color: '#2d3a5c' }, ticks: { color: '#b0b8d9' } },
+            y: { grid: { color: '#2d3a5c' }, ticks: { color: '#b0b8d9' }, beginAtZero: true }
+          }
+        }
+      });
+    });
+}
+// Кнопки фильтрации графика
+const graphBtns = document.querySelectorAll('.time-filter-graph');
+graphBtns.forEach(btn => btn.addEventListener('click', function() {
+  graphBtns.forEach(b => b.classList.remove('active'));
+  this.classList.add('active');
+  fetchAndRenderChart(this.dataset.range);
+}));
+// Инициализация графика (24ч по умолчанию)
+document.addEventListener('DOMContentLoaded', () => {
+  fetchAndRenderChart('24h');
+});
+
+// Панель уведомлений (toast)
+function addToastToPanel(type, text) {
+  let toasts = JSON.parse(localStorage.getItem('toastHistory') || '[]');
+  toasts.push({ type, text, ts: Date.now() });
+  if (toasts.length > 10) toasts = toasts.slice(-10);
+  localStorage.setItem('toastHistory', JSON.stringify(toasts));
+  renderToastPanel();
+}
+function renderToastPanel() {
+  const list = document.getElementById('toast-list');
+  let toasts = JSON.parse(localStorage.getItem('toastHistory') || '[]');
+  list.innerHTML = '';
+  toasts.slice().reverse().forEach(t => {
+    const li = document.createElement('li');
+    li.className = 'toast-' + t.type;
+    li.innerHTML = `<b>${t.type === 'success' ? '✔' : t.type === 'error' ? '⛔' : t.type === 'warning' ? '⚠️' : 'ℹ️'}</b> ${t.text}`;
+    list.appendChild(li);
+  });
+}
+// Кнопка сворачивания панели
+const toastPanel = document.getElementById('toast-panel');
+document.getElementById('toast-toggle').onclick = function() {
+  toastPanel.classList.toggle('collapsed');
+  this.textContent = toastPanel.classList.contains('collapsed') ? '⮟' : '⮝';
+};
+renderToastPanel();
+// Перехват SweetAlert для записи в историю
+window.Swal && (Swal._orig_fire = Swal.fire, Swal.fire = function(opts) {
+  if (opts && opts.icon && opts.title) {
+    addToastToPanel(opts.icon, opts.title);
+  }
+  return Swal._orig_fire.apply(this, arguments);
+});
+
+// Плавное появление фильтров
+const toggleBtn = document.getElementById('toggle-filters');
+const filters = document.getElementById('search-filters');
+let filtersVisible = false;
+toggleBtn.addEventListener('click', function() {
+  filtersVisible = !filtersVisible;
+  if (filtersVisible) {
+    filters.classList.add('open');
+    filters.style.display = 'block';
+    filters.style.opacity = 0;
+    setTimeout(() => { filters.style.opacity = 1; }, 10);
+  } else {
+    filters.style.opacity = 0;
+    setTimeout(() => { filters.classList.remove('open'); filters.style.display = 'none'; }, 200);
+  }
+  toggleBtn.innerHTML = filtersVisible ? '<i class="fas fa-filter"></i> Скрыть фильтры' : '<i class="fas fa-filter"></i> Показать фильтры';
+});
+// Fade-in для строк таблицы
+document.querySelectorAll('.table tbody tr').forEach((row, i) => {
+  row.style.animationDelay = (i * 0.03) + 's';
+});
+</script>
+{% endblock %}

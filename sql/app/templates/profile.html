@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профиль пользователя</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-left">
+            <a href="/" class="navbar-logo">🛡️ SQL Monitor</a>
+            <a href="/">Главная</a>
+            <a href="/export">Экспорт CSV</a>
+            <a href="/help">Помощь</a>
+            <a href="/profile">Профиль</a>
+            <a href="/about">О системе</a>
+        </div>
+        <div class="navbar-right">
+            <span>👤 admin</span>
+            <a href="/logout">Выйти</a>
+        </div>
+    </nav>
+    <div class="center-main">
+        <h2>Профиль пользователя</h2>
+        <p><b>Логин:</b> {{ user }}</p>
+        <p><b>Роль:</b> {{ role }}</p>
+        <form method="post" action="/change_password" class="center-form">
+            <input type="password" name="old_password" placeholder="Старый пароль" required>
+            <input type="password" name="new_password" placeholder="Новый пароль" required>
+            <button type="submit">Сменить пароль</button>
+        </form>
+    </div>
+</body>
+</html>

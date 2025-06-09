@@ -1,0 +1,183 @@
+version: '3.8'
+
+services:
+  # Основная БД для приложения
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: logsdb
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d logsdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  # БД для Zabbix
+  zabbix-db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: zabbix
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: zabbix
+    volumes:
+      - zabbix_pgdata:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zabbix -d zabbix"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  # Сервис для инициализации БД Zabbix
+  zabbix-db-init:
+    image: zabbix/zabbix-server-pgsql:alpine-6.4-latest
+    depends_on:
+      zabbix-db:
+        condition: service_healthy
+    environment:
+      DB_SERVER_HOST: zabbix-db
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: zabbix
+      POSTGRES_DB: zabbix
+    command: >
+      bash -c "
+      echo 'Waiting for PostgreSQL to be ready...';
+      while ! pg_isready -h $$DB_SERVER_HOST -U $$POSTGRES_USER -d $$POSTGRES_DB; do sleep 1; done;
+      echo 'Initializing Zabbix database...';
+      find /usr/share/doc/zabbix-server-pgsql -name 'create.sql.gz' -exec gunzip -k {} \;
+      find /usr/share/doc/zabbix-server-pgsql -name 'create.sql' -exec psql -h $$DB_SERVER_HOST -U $$POSTGRES_USER -d $$POSTGRES_DB -f {} \;
+      echo 'Zabbix database initialized successfully!'
+      "
+    restart: on-failure
+    networks:
+      - app-network
+
+  # Zabbix Server
+  zabbix-server:
+    image: zabbix/zabbix-server-pgsql:alpine-6.4-latest
+    depends_on:
+      zabbix-db-init:
+        condition: service_completed_successfully
+    environment:
+      DB_SERVER_HOST: zabbix-db
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: zabbix
+      POSTGRES_DB: zabbix
+      ZBX_SERVER_NAME: Zabbix Server
+      ZBX_STARTAGENTS: 5
+      ZBX_TIMEOUT: 30
+      ZBX_CACHESIZE: 128M
+      ZBX_HISTORYCACHESIZE: 128M
+      ZBX_HISTORYINDEXCACHESIZE: 128M
+      ZBX_TRENDCACHESIZE: 128M
+      ZBX_VALUECACHESIZE: 128M
+    ports:
+      - "10051:10051"
+    healthcheck:
+      test: ["CMD-SHELL", "zabbix_server -R config_cache_reload"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # Zabbix Web Interface
+  zabbix-web:
+    image: zabbix/zabbix-web-nginx-pgsql:alpine-6.4-latest
+    depends_on:
+      zabbix-server:
+        condition: service_healthy
+    environment:
+      DB_SERVER_HOST: zabbix-db
+      POSTGRES_USER: zabbix
+      POSTGRES_PASSWORD: zabbix
+      POSTGRES_DB: zabbix
+      ZBX_SERVER_HOST: zabbix-server
+      ZBX_SERVER_NAME: Zabbix Server
+      PHP_TZ: Europe/Moscow
+      ZBX_GUI_ACCESS_IP_RANGES: 0.0.0.0/0
+      PHP_FRAMES_SAMEORIGIN: "false"
+      PHP_FRAMES_DENY: "false"
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # Основное приложение
+  app:
+    build: ./app
+    environment:
+      DB_HOST: db
+      DB_NAME: logsdb
+      DB_USER: user
+      DB_PASS: password
+      FLASK_SECRET_KEY: your-very-secret-key
+      ZABBIX_SERVER_HOST: http://zabbix-web:8080
+      ZABBIX_USER: Admin
+      ZABBIX_PASSWORD: zabbix
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      zabbix-web:
+        condition: service_healthy
+    volumes:
+      - ./app:/app
+    restart: unless-stopped
+    networks:
+      - app-network
+    command: >
+      bash -c "
+      echo 'Waiting for database...' &&
+      while ! pg_isready -h db -U user -d logsdb; do sleep 1; done &&
+      echo 'Database is ready!' &&
+      echo 'Waiting for Zabbix to be ready...' &&
+      sleep 30 &&
+      echo 'Initializing database with test data...' &&
+      python init_db_with_data.py &&
+      python app.py
+      "
+
+  # Grafana
+  grafana:
+    image: grafana/grafana:10.4.2
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ALLOW_EMBEDDING: "true"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  pgdata:
+  grafana_data:
+  zabbix_pgdata:

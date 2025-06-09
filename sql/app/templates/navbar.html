@@ -1,0 +1,90 @@
+<!-- navbar.html -->
+<nav class="navbar">
+    <div class="navbar-brand">
+        <a href="/" class="logo">
+            <i class="fas fa-shield-alt logo-icon"></i>
+            <span class="logo-text">SQL Monitor</span>
+        </a>
+        <button class="navbar-toggle" id="mobile-menu-toggle">
+            <i class="fas fa-bars"></i>
+        </button>
+    </div>
+    
+    <div class="navbar-menu" id="navbar-menu">
+        <div class="navbar-start">
+            <a href="/" class="nav-item {% if request.path == '/' %}active{% endif %}">
+                <i class="fas fa-home nav-icon"></i>
+                <span class="nav-text">Главная</span>
+            </a>
+            {% if role == 'admin' %}
+                <a href="/export" class="nav-item {% if request.path.startswith('/export') %}active{% endif %}">
+                    <i class="fas fa-file-export nav-icon"></i>
+                    <span class="nav-text">Экспорт</span>
+                </a>
+                <a href="http://localhost:8080" target="_blank" class="nav-item {% if request.path.startswith('/zabbix') %}active{% endif %}">
+                    <i class="fas fa-chart-line nav-icon"></i>
+                    <span class="nav-text">Zabbix</span>
+                </a>
+            {% endif %}
+            <a href="/help" class="nav-item {% if request.path.startswith('/help') %}active{% endif %}">
+                <i class="fas fa-question-circle nav-icon"></i>
+                <span class="nav-text">Помощь</span>
+            </a>
+            <a href="/profile" class="nav-item {% if request.path.startswith('/profile') %}active{% endif %}">
+                <i class="fas fa-user nav-icon"></i>
+                <span class="nav-text">Профиль</span>
+            </a>
+            <a href="/about" class="nav-item {% if request.path.startswith('/about') %}active{% endif %}">
+                <i class="fas fa-info-circle nav-icon"></i>
+                <span class="nav-text">О системе</span>
+            </a>
+        </div>
+        
+        <div class="navbar-end">
+            {% if user %}
+                <div class="user-profile">
+                    <i class="fas fa-user-circle user-icon"></i>
+                    <span class="username">{{ user }}</span>
+                    <div class="user-dropdown">
+                        <a href="/profile" class="dropdown-item">
+                            <i class="fas fa-user-cog"></i> Настройки
+                        </a>
+                        <a href="/logout" class="dropdown-item">
+                            <i class="fas fa-sign-out-alt"></i> Выйти
+                        </a>
+                    </div>
+                </div>
+            {% else %}
+                <a href="/login" class="auth-button login-button">
+                    <i class="fas fa-sign-in-alt"></i> Войти
+                </a>
+                <a href="/register" class="auth-button register-button">
+                    <i class="fas fa-user-plus"></i> Регистрация
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</nav>
+
+<script>
+    // Мобильное меню
+    document.getElementById('mobile-menu-toggle').addEventListener('click', function() {
+        const menu = document.getElementById('navbar-menu');
+        menu.classList.toggle('active');
+    });
+    
+    // Раскрывающееся меню пользователя
+    const userProfile = document.querySelector('.user-profile');
+    if (userProfile) {
+        userProfile.addEventListener('click', function() {
+            this.querySelector('.user-dropdown').classList.toggle('show');
+        });
+    }
+    
+    // Закрытие меню при клике вне его
+    window.addEventListener('click', function(e) {
+        if (!e.target.closest('.user-profile') && document.querySelector('.user-dropdown.show')) {
+            document.querySelector('.user-dropdown.show').classList.remove('show');
+        }
+    });
+</script>

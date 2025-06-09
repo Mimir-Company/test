@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="container">
+    <h2>Детали лога</h2>
+    <ul class="log-details">
+      <li><b>ID:</b> {{ log.id }}</li>
+      <li><b>IP:</b> {{ log.ip }}</li>
+      <li><b>URL:</b> {{ log.url }}</li>
+      <li><b>Запрос:</b> <code>{{ log.request }}</code></li>
+      <li><b>Дата:</b> {{ log.date }}</li>
+      <li><b>Метка:</b> {% if log.label == 1 %}<span class="badge badge-danger">SQL-инъекция</span>{% else %}<span class="badge badge-success">Норма</span>{% endif %}</li>
+    </ul>
+    <a href="{{ url_for('index') }}" class="btn btn-primary">Назад</a>
+  </div>
+{% endblock %} 

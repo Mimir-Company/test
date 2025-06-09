@@ -1,0 +1,141 @@
+<!-- base.html -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SQL Monitor{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+          integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg=="
+          crossorigin="anonymous" referrerpolicy="no-referrer"/>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+      @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+      .fade-in {
+        animation: fadeIn 0.7s;
+      }
+      #scrollTopBtn {
+        display: none;
+        position: fixed;
+        bottom: 40px;
+        right: 40px;
+        z-index: 9999;
+        background: linear-gradient(90deg, #1976d2, #42a5f5);
+        color: #fff;
+        border: none;
+        border-radius: 50%;
+        width: 48px;
+        height: 48px;
+        box-shadow: 0 4px 16px rgba(25,118,210,0.18);
+        cursor: pointer;
+        font-size: 1.5rem;
+        transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
+      }
+      #scrollTopBtn:hover {
+        background: linear-gradient(90deg, #42a5f5, #1976d2);
+        transform: scale(1.08);
+      }
+    </style>
+</head>
+<body>
+    <div id="loading" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);z-index:1000;align-items:center;justify-content:center;">
+      <div style="width:50px;height:50px;border:5px solid #fff;border-top:5px solid #42a5f5;border-radius:50%;animation:spin 1s linear infinite;"></div>
+    </div>
+    
+    {% include 'navbar.html' %}
+    
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+    
+    <button id="scrollTopBtn" title="Наверх"><i class="fas fa-arrow-up"></i></button>
+    
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-links">
+                <a href="/about">О системе</a>
+                <a href="/help">Помощь</a>
+                <a href="mailto:support@example.com">Контакты</a>
+            </div>
+            <div class="footer-copyright">
+                &copy; {{ now().year }} SQL Monitor | Защита от SQL-инъекций
+            </div>
+        </div>
+    </footer>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <script>
+        const flashMessages = [{% for category, message in messages %}{icon: "{{ 'success' if category == 'success' else ('error' if category == 'error' else ('warning' if category == 'warning' else 'info')) }}", title: "{{ message|escapejs }}"}{% if not loop.last %},{% endif %}{% endfor %}];
+        if (flashMessages.length > 0) {
+          flashMessages.forEach(function(msg) {
+            Swal.fire({
+              icon: msg.icon,
+              title: msg.title,
+              showConfirmButton: false,
+              timer: 3000,
+              background: '#1e2746',
+              color: '#e3eaf2',
+              showClass: { popup: 'swal2-show fade-in' },
+              hideClass: { popup: 'swal2-hide' }
+            });
+          });
+        }
+        </script>
+      {% endif %}
+    {% endwith %}
+    
+    {% if error %}
+    <script>
+      Swal.fire({
+        icon: 'error',
+        title: 'Ошибка',
+        text: '{{ error }}',
+        background: '#1e2746',
+        color: '#e3eaf2',
+        showClass: { popup: 'swal2-show fade-in' },
+        hideClass: { popup: 'swal2-hide' }
+      });
+    </script>
+    {% endif %}
+    
+    <script>
+      // Лоадер при отправке форм
+      document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', () => {
+          document.getElementById('loading').style.display = 'flex';
+        });
+      });
+      // Анимация при наведении на элементы навигации
+      document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('mouseenter', () => {
+          item.querySelector('.nav-icon').style.transform = 'translateY(-3px)';
+        });
+        item.addEventListener('mouseleave', () => {
+          item.querySelector('.nav-icon').style.transform = 'translateY(0)';
+        });
+      });
+      // Fade-in для всех .container
+      document.querySelectorAll('.container').forEach(el => {
+        el.classList.add('fade-in');
+      });
+      // Кнопка "Наверх"
+      const scrollBtn = document.getElementById('scrollTopBtn');
+      window.addEventListener('scroll', function() {
+        if (window.scrollY > 300) {
+          scrollBtn.style.display = 'block';
+        } else {
+          scrollBtn.style.display = 'none';
+        }
+      });
+      scrollBtn.addEventListener('click', function() {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    </script>
+</body>
+</html>

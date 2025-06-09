@@ -1,0 +1,12 @@
+flask
+flask-login
+pandas
+psycopg2-binary
+werkzeug
+joblib
+scikit-learn
+requests
+Flask-Limiter
+pyzabbix
+python-dotenv
+gunicorn

@@ -1,0 +1,66 @@
+<!-- register.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="form-container">
+    <div class="auth-header">
+        <i class="fas fa-user-plus auth-icon"></i>
+        <h2>Регистрация</h2>
+        <p>Создайте новую учетную запись</p>
+    </div>
+    
+    <form method="post" action="/register" class="auth-form">
+        <div class="form-group">
+            <label class="form-label">Логин</label>
+            <div class="input-group">
+                <span class="input-icon">
+                    <i class="fas fa-user"></i>
+                </span>
+                <input type="text" name="username" placeholder="Придумайте логин" class="form-control" required>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Пароль</label>
+            <div class="input-group">
+                <span class="input-icon">
+                    <i class="fas fa-lock"></i>
+                </span>
+                <input type="password" name="password" placeholder="Придумайте пароль" class="form-control" required>
+                <button type="button" class="password-toggle">
+                    <i class="fas fa-eye"></i>
+                </button>
+            </div>
+            <small class="form-text">Пароль должен содержать не менее 8 символов</small>
+        </div>
+        
+        <div class="form-group">
+            <button type="submit" class="btn btn-primary btn-block">
+                <i class="fas fa-user-plus"></i> Зарегистрироваться
+            </button>
+        </div>
+        
+        <div class="auth-footer">
+            Уже есть аккаунт? <a href="/login">Войти</a>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Toggle password visibility
+    document.querySelector('.password-toggle').addEventListener('click', function() {
+        const passwordInput = document.querySelector('input[name="password"]');
+        const icon = this.querySelector('i');
+        
+                if (passwordInput.type === 'password') {
+                    passwordInput.type = 'text';
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                } else {
+                    passwordInput.type = 'password';
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                }
+            });
+        </script>
+        {% endblock %}
